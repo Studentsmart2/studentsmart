@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Onboarding Step 4 - Skills & Certifications</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #1d4ed8; }
+        .entry { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+        h2 { margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <h1>Step 4: Skills & Certifications</h1>
+    
+    <h2>Skills</h2>
+    <div id="skillsList"></div>
+    <button type="button" onclick="addSkill()">+ Add Skill</button>
+
+    <h2>Certifications</h2>
+    <div id="certsList"></div>
+    <button type="button" onclick="addCert()">+ Add Certification</button>
+
+    <button type="button" onclick="submitForm()">Next Step</button>
+
+    <script>
+        let skillCount = 0;
+        let certCount = 0;
+
+        function addSkill() {
+            skillCount++;
+            const div = document.createElement('div');
+            div.className = 'entry';
+            div.innerHTML = `
+                <div class="form-group">
+                    <label>Skill Name:</label>
+                    <input type="text" id="skill_name_${skillCount}" required>
+                </div>
+                <div class="form-group">
+                    <label>Proficiency:</label>
+                    <select id="skill_level_${skillCount}">
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                        <option value="expert">Expert</option>
+                    </select>
+                </div>
+            `;
+            document.getElementById('skillsList').appendChild(div);
+        }
+
+        function addCert() {
+            certCount++;
+            const div = document.createElement('div');
+            div.className = 'entry';
+            div.innerHTML = `
+                <div class="form-group">
+                    <label>Certification Name:</label>
+                    <input type="text" id="cert_name_${certCount}" required>
+                </div>
+                <div class="form-group">
+                    <label>Issuing Organization:</label>
+                    <input type="text" id="cert_org_${certCount}">
+                </div>
+                <div class="form-group">
+                    <label>Issue Date:</label>
+                    <input type="date" id="cert_date_${certCount}">
+                </div>
+                <div class="form-group">
+                    <label>Credential URL:</label>
+                    <input type="url" id="cert_url_${certCount}">
+                </div>
+            `;
+            document.getElementById('certsList').appendChild(div);
+        }
+
+        async function submitForm() {
+            const skills = [];
+            for (let i = 1; i <= skillCount; i++) {
+                const name = document.getElementById(`skill_name_${i}`).value;
+                if (name) {
+                    skills.push({
+                        name: name,
+                        proficiency_level: document.getElementById(`skill_level_${i}`).value
+                    });
+                }
+            }
+
+            const certifications = [];
+            for (let i = 1; i <= certCount; i++) {
+                const name = document.getElementById(`cert_name_${i}`).value;
+                if (name) {
+                    certifications.push({
+                        name: name,
+                        issuing_organization: document.getElementById(`cert_org_${i}`).value,
+                        issue_date: document.getElementById(`cert_date_${i}`).value,
+                        credential_url: document.getElementById(`cert_url_${i}`).value
+                    });
+                }
+            }
+
+            const response = await fetch('/student/onboarding/step4', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ skills, certifications })
+            });
+            const data = await response.json();
+            if (data.success) {
+                window.location.href = data.redirect;
+            }
+        }
+
+        addSkill();
+    </script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Onboarding Step 2 - Education</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #1d4ed8; }
+        .edu-entry { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Step 2: Education</h1>
+    <p>Add your educational qualifications</p>
+    <div id="educationList"></div>
+    <button type="button" onclick="addEducation()">+ Add Education</button>
+    <button type="button" onclick="submitForm()">Next Step</button>
+
+    <script>
+        let eduCount = 0;
+        const educationList = [];
+
+        function addEducation() {
+            eduCount++;
+            const div = document.createElement('div');
+            div.className = 'edu-entry';
+            div.innerHTML = `
+                <div class="form-group">
+                    <label>Degree:</label>
+                    <input type="text" id="degree_${eduCount}" required>
+                </div>
+                <div class="form-group">
+                    <label>Institution:</label>
+                    <input type="text" id="institution_${eduCount}" required>
+                </div>
+                <div class="form-group">
+                    <label>Field of Study:</label>
+                    <input type="text" id="field_${eduCount}">
+                </div>
+                <div class="form-group">
+                    <label>Grade:</label>
+                    <input type="text" id="grade_${eduCount}">
+                </div>
+                <div class="form-group">
+                    <label>Start Date:</label>
+                    <input type="date" id="start_${eduCount}">
+                </div>
+                <div class="form-group">
+                    <label>End Date:</label>
+                    <input type="date" id="end_${eduCount}">
+                </div>
+            `;
+            document.getElementById('educationList').appendChild(div);
+        }
+
+        async function submitForm() {
+            const education = [];
+            for (let i = 1; i <= eduCount; i++) {
+                education.push({
+                    degree: document.getElementById(`degree_${i}`).value,
+                    institution: document.getElementById(`institution_${i}`).value,
+                    field_of_study: document.getElementById(`field_${i}`).value,
+                    grade: document.getElementById(`grade_${i}`).value,
+                    start_date: document.getElementById(`start_${i}`).value,
+                    end_date: document.getElementById(`end_${i}`).value
+                });
+            }
+
+            const response = await fetch('/student/onboarding/step2', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ education })
+            });
+            const data = await response.json();
+            if (data.success) {
+                window.location.href = data.redirect;
+            }
+        }
+
+        addEducation();
+    </script>
+</body>
+</html>

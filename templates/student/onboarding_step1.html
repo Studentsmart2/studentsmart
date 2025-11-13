@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding - Personal Information | StudentSmart</title>
+    <link rel="icon" href="https://i.ibb.co/1YBpx2KS/logo.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6C5CE7;
+            --primary-light: #A29BFE;
+            --secondary: #00CEC9;
+            --accent: #FD79A8;
+            --dark: #2D3436;
+            --light: #F5F6FA;
+            --white: #FFFFFF;
+            --success: #00B894;
+            --border-radius: 12px;
+            --border-radius-lg: 20px;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--light);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+
+        .onboarding-container {
+            max-width: 700px;
+            width: 100%;
+            background: var(--white);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        .onboarding-header {
+            background: var(--primary);
+            color: var(--white);
+            padding: 2.5rem 2rem;
+            text-align: center;
+        }
+
+        .onboarding-header h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .onboarding-header p {
+            opacity: 0.95;
+            font-size: 1rem;
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            padding: 1.5rem 2rem;
+            background: var(--light);
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .step::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: #ddd;
+            z-index: 0;
+        }
+
+        .step:last-child::after {
+            display: none;
+        }
+
+        .step-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #ddd;
+            color: #666;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            position: relative;
+            z-index: 1;
+            transition: var(--transition);
+        }
+
+        .step.active .step-circle {
+            background: var(--primary);
+            color: var(--white);
+            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.2);
+        }
+
+        .step.completed .step-circle {
+            background: var(--success);
+            color: var(--white);
+        }
+
+        .step-label {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 0.5rem;
+            display: block;
+        }
+
+        .onboarding-content {
+            padding: 2.5rem 2rem;
+        }
+
+        .form-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title i {
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--dark);
+            font-size: 0.95rem;
+        }
+
+        .form-group label .required {
+            color: #e74c3c;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: var(--border-radius);
+            font-size: 0.95rem;
+            transition: var(--transition);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+
+        .input-group .form-control {
+            padding-left: 2.75rem;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        @media (max-width: 768px) {
+            .onboarding-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .onboarding-content {
+                padding: 1.5rem 1rem;
+            }
+
+            .step-label {
+                font-size: 0.65rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="onboarding-container">
+        <div class="onboarding-header">
+            <h1><i class="fas fa-rocket"></i> Welcome to StudentSmart!</h1>
+            <p>Let's set up your profile to get started</p>
+        </div>
+
+        <div class="progress-steps">
+            <div class="step active">
+                <span class="step-circle">1</span>
+                <span class="step-label">Personal Info</span>
+            </div>
+            <div class="step">
+                <span class="step-circle">2</span>
+                <span class="step-label">Education</span>
+            </div>
+            <div class="step">
+                <span class="step-circle">3</span>
+                <span class="step-label">Experience</span>
+            </div>
+            <div class="step">
+                <span class="step-circle">4</span>
+                <span class="step-label">Skills</span>
+            </div>
+            <div class="step">
+                <span class="step-circle">5</span>
+                <span class="step-label">Complete</span>
+            </div>
+        </div>
+
+        <div class="onboarding-content">
+            <form id="step1Form">
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-user"></i>
+                        Basic Information
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label>Phone Number <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-phone input-icon"></i>
+                            <input type="tel" id="phone" class="form-control" placeholder="+91 1234567890" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Bio <span class="required">*</span></label>
+                        <textarea id="bio" class="form-control" placeholder="Tell us about yourself, your interests, and career goals..." required></textarea>
+                        <div class="help-text">This will be visible on your profile to potential employers</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Location (State) <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-map-marker-alt input-icon"></i>
+                            <input type="text" id="location" class="form-control" placeholder="e.g., Maharashtra, Delhi" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-link"></i>
+                        Professional Links
+                    </h3>
+
+                    <div class="form-group">
+                        <label>LinkedIn Profile</label>
+                        <div class="input-group">
+                            <i class="fab fa-linkedin input-icon"></i>
+                            <input type="url" id="linkedin_url" class="form-control" placeholder="https://linkedin.com/in/yourprofile">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>GitHub Profile</label>
+                        <div class="input-group">
+                            <i class="fab fa-github input-icon"></i>
+                            <input type="url" id="github_url" class="form-control" placeholder="https://github.com/yourusername">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Portfolio Website</label>
+                        <div class="input-group">
+                            <i class="fas fa-globe input-icon"></i>
+                            <input type="url" id="portfolio_url" class="form-control" placeholder="https://yourportfolio.com">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>LeetCode Profile</label>
+                        <div class="input-group">
+                            <i class="fas fa-code input-icon"></i>
+                            <input type="url" id="leetcode_url" class="form-control" placeholder="https://leetcode.com/yourusername">
+                        </div>
+                        <div class="help-text">Add your coding profiles to stand out to tech recruiters</div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    Continue to Education
+                    <i class="fas fa-arrow-right ms-2"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('step1Form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = e.target.querySelector('.btn-submit');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/student/onboarding/step1', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        phone: document.getElementById('phone').value,
+                        bio: document.getElementById('bio').value,
+                        location: document.getElementById('location').value,
+                        linkedin_url: document.getElementById('linkedin_url').value,
+                        github_url: document.getElementById('github_url').value,
+                        portfolio_url: document.getElementById('portfolio_url').value,
+                        leetcode_url: document.getElementById('leetcode_url').value
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to save'));
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                alert('Network error. Please try again.');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
