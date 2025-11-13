@@ -714,6 +714,52 @@ def save_image(image):
 @app.route('/')
 def index():
     return send_file('index.html')
+
+@app.route('/api/listing/<int:listing_id>/interested-buyers')
+@login_required
+def get_interested_buyers(listing_id):
+    try:
+        # Verify the current user is the seller of this listing
+        listing = Listing.query.filter_by(id=listing_id, seller_id=current_user.id).first()
+        if not listing:
+            return jsonify({'success': False, 'message': 'Listing not found or you are not the seller'}), 404
+
+        # Get all unique users who have sent messages about this listing
+        # Query messages where current_user is the receiver (seller)
+        interested_users_query = db.session.query(
+            User.id,
+            User.full_name,
+            User.email,
+            User.profile_picture,
+            db.func.max(MessageThread.created_at).label('last_message_time')
+        ).join(
+            MessageThread, MessageThread.sender_id == User.id
+        ).filter(
+            MessageThread.listing_id == listing_id,
+            MessageThread.receiver_id == current_user.id
+        ).group_by(
+            User.id, User.full_name, User.email, User.profile_picture
+        ).order_by(
+            db.func.max(MessageThread.created_at).desc()
+        ).all()
+
+        # Format the results
+        interested_buyers = [{
+            'id': user.id,
+            'full_name': user.full_name,
+            'email': user.email,
+            'profile_picture': user.profile_picture,
+            'last_message_time': user.last_message_time.isoformat()
+        } for user in interested_users_query]
+
+        return jsonify({
+            'success': True,
+            'buyers': interested_buyers
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/mark_sold/<int:listing_id>', methods=['POST'])
 @login_required
 def mark_sold(listing_id):
@@ -721,16 +767,29 @@ def mark_sold(listing_id):
         listing = Listing.query.filter_by(id=listing_id, seller_id=current_user.id).first()
         if not listing:
             return jsonify({'success': False, 'message': 'Listing not found'})
-        
-        buyer_name = request.form.get('buyer_name', '').strip()
-        buyer_email = request.form.get('buyer_email', '').strip()
-        
-        if not buyer_name or not buyer_email:
-            return jsonify({'success': False, 'message': 'Please provide buyer name and email'})
-        
+
+        # Check if buyer_user_id is provided (new flow) or manual entry (old flow)
+        buyer_user_id = request.form.get('buyer_user_id', '').strip()
+
+        if buyer_user_id:
+            # New flow: Get buyer information from user ID
+            buyer = User.query.get(buyer_user_id)
+            if not buyer:
+                return jsonify({'success': False, 'message': 'Buyer not found'})
+
+            buyer_name = buyer.full_name
+            buyer_email = buyer.email
+        else:
+            # Old flow: Manual entry (fallback for compatibility)
+            buyer_name = request.form.get('buyer_name', '').strip()
+            buyer_email = request.form.get('buyer_email', '').strip()
+
+            if not buyer_name or not buyer_email:
+                return jsonify({'success': False, 'message': 'Please provide buyer information'})
+
         # Generate confirmation token
         confirmation_token = secrets.token_urlsafe(32)
-        
+
         # Create sold item record
         sold_item = SoldItem(
             listing_id=listing_id,
@@ -740,7 +799,7 @@ def mark_sold(listing_id):
             confirmation_token=confirmation_token
         )
         db.session.add(sold_item)
-        
+
         # Create notification
         notification = Notification(
             user_id=current_user.id,
@@ -753,12 +812,12 @@ def mark_sold(listing_id):
         )
         db.session.add(notification)
         db.session.commit()
-        
+
         # Send confirmation email to buyer
         send_buyer_confirmation_email(buyer_email, buyer_name, listing, confirmation_token, current_user.full_name)
-        
+
         return jsonify({'success': True, 'message': 'Confirmation email sent to buyer'})
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)})
