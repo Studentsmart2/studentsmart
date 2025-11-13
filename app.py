@@ -714,6 +714,52 @@ def save_image(image):
 @app.route('/')
 def index():
     return send_file('index.html')
+
+@app.route('/api/listing/<int:listing_id>/interested-buyers')
+@login_required
+def get_interested_buyers(listing_id):
+    try:
+        # Verify the current user is the seller of this listing
+        listing = Listing.query.filter_by(id=listing_id, seller_id=current_user.id).first()
+        if not listing:
+            return jsonify({'success': False, 'message': 'Listing not found or you are not the seller'}), 404
+
+        # Get all unique users who have sent messages about this listing
+        # Query messages where current_user is the receiver (seller)
+        interested_users_query = db.session.query(
+            User.id,
+            User.full_name,
+            User.email,
+            User.profile_picture,
+            db.func.max(MessageThread.created_at).label('last_message_time')
+        ).join(
+            MessageThread, MessageThread.sender_id == User.id
+        ).filter(
+            MessageThread.listing_id == listing_id,
+            MessageThread.receiver_id == current_user.id
+        ).group_by(
+            User.id, User.full_name, User.email, User.profile_picture
+        ).order_by(
+            db.func.max(MessageThread.created_at).desc()
+        ).all()
+
+        # Format the results
+        interested_buyers = [{
+            'id': user.id,
+            'full_name': user.full_name,
+            'email': user.email,
+            'profile_picture': user.profile_picture,
+            'last_message_time': user.last_message_time.isoformat()
+        } for user in interested_users_query]
+
+        return jsonify({
+            'success': True,
+            'buyers': interested_buyers
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/mark_sold/<int:listing_id>', methods=['POST'])
 @login_required
 def mark_sold(listing_id):
@@ -721,16 +767,29 @@ def mark_sold(listing_id):
         listing = Listing.query.filter_by(id=listing_id, seller_id=current_user.id).first()
         if not listing:
             return jsonify({'success': False, 'message': 'Listing not found'})
-        
-        buyer_name = request.form.get('buyer_name', '').strip()
-        buyer_email = request.form.get('buyer_email', '').strip()
-        
-        if not buyer_name or not buyer_email:
-            return jsonify({'success': False, 'message': 'Please provide buyer name and email'})
-        
+
+        # Check if buyer_user_id is provided (new flow) or manual entry (old flow)
+        buyer_user_id = request.form.get('buyer_user_id', '').strip()
+
+        if buyer_user_id:
+            # New flow: Get buyer information from user ID
+            buyer = db.session.get(User, buyer_user_id)
+            if not buyer:
+                return jsonify({'success': False, 'message': 'Buyer not found'})
+
+            buyer_name = buyer.full_name
+            buyer_email = buyer.email
+        else:
+            # Old flow: Manual entry (fallback for compatibility)
+            buyer_name = request.form.get('buyer_name', '').strip()
+            buyer_email = request.form.get('buyer_email', '').strip()
+
+            if not buyer_name or not buyer_email:
+                return jsonify({'success': False, 'message': 'Please provide buyer information'})
+
         # Generate confirmation token
         confirmation_token = secrets.token_urlsafe(32)
-        
+
         # Create sold item record
         sold_item = SoldItem(
             listing_id=listing_id,
@@ -740,7 +799,7 @@ def mark_sold(listing_id):
             confirmation_token=confirmation_token
         )
         db.session.add(sold_item)
-        
+
         # Create notification
         notification = Notification(
             user_id=current_user.id,
@@ -753,12 +812,12 @@ def mark_sold(listing_id):
         )
         db.session.add(notification)
         db.session.commit()
-        
+
         # Send confirmation email to buyer
         send_buyer_confirmation_email(buyer_email, buyer_name, listing, confirmation_token, current_user.full_name)
-        
+
         return jsonify({'success': True, 'message': 'Confirmation email sent to buyer'})
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)})
@@ -1113,7 +1172,7 @@ def load_user(user_id):
 def get_or_create_student_profile(user_id):
     profile = StudentProfile.query.filter_by(user_id=user_id).first()
     if not profile:
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if user:
             profile = StudentProfile(
                 user_id=user_id,
@@ -3381,7 +3440,7 @@ def admin_listing_details(listing_id):
         listing = db.session.get(Listing, listing_id)
         if not listing:
             abort(404)
-        seller = User.query.get(listing.seller_id)
+        seller = db.session.get(User, listing.seller_id)
         return jsonify({
             'id': listing.id,
             'title': listing.title,
@@ -4477,9 +4536,9 @@ def admin_approve_college_change(user_id):
             </body>
             </html>
             """), 404
-        
+
         # Update user's college
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return render_template_string("""
             <!DOCTYPE html>
@@ -4731,8 +4790,8 @@ def admin_reject_college_change(user_id):
             </body>
             </html>
             """), 404
-        
-        user = User.query.get(user_id)
+
+        user = db.session.get(User, user_id)
         if not user:
             return render_template_string("""
             <!DOCTYPE html>
@@ -5918,7 +5977,7 @@ def company_required(f):
 @app.route('/company/dashboard')
 @company_required
 def company_dashboard():
-    company = Company.query.get(session['company_id'])
+    company = db.session.get(Company, session['company_id'])
     internships = Internship.query.filter_by(posted_by_company_id=company.id).all()
     total_applications = db.session.query(Application).join(Internship).filter(Internship.posted_by_company_id == company.id).count()
     
@@ -5930,10 +5989,10 @@ def company_dashboard():
 def company_post_job():
     if request.method == 'GET':
         return render_template('company/post_job.html')
-    
-    company = Company.query.get(session['company_id'])
+
+    company = db.session.get(Company, session['company_id'])
     data = request.json
-    
+
     internship = Internship(
         title=data['title'],
         description=data['description'],
@@ -5954,7 +6013,7 @@ def company_post_job():
 @app.route('/company/jobs')
 @company_required
 def company_jobs():
-    company = Company.query.get(session['company_id'])
+    company = db.session.get(Company, session['company_id'])
     internships = Internship.query.filter_by(posted_by_company_id=company.id).order_by(Internship.created_at.desc()).all()
     return render_template('company/jobs.html', internships=internships)
 
@@ -5962,7 +6021,7 @@ def company_jobs():
 @app.route('/company/applications')
 @company_required
 def company_applications():
-    company = Company.query.get(session['company_id'])
+    company = db.session.get(Company, session['company_id'])
     applications = db.session.query(Application).join(Internship).filter(Internship.posted_by_company_id == company.id).order_by(Application.applied_at.desc()).all()
     return render_template('company/applications.html', applications=applications)
 
@@ -5970,8 +6029,8 @@ def company_applications():
 @app.route('/company/profile/edit', methods=['GET', 'POST'])
 @company_required
 def company_profile_edit():
-    company = Company.query.get(session['company_id'])
-    
+    company = db.session.get(Company, session['company_id'])
+
     if request.method == 'GET':
         return render_template('company/edit_profile.html', company=company)
     
@@ -6308,7 +6367,7 @@ def admin_update_application_status(application_id):
 @company_required
 def company_update_application_status(application_id):
     try:
-        company = Company.query.get(session['company_id'])
+        company = db.session.get(Company, session['company_id'])
         data = request.json
         new_status = data.get('status')
         notes = data.get('notes', '')
