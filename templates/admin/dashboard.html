@@ -761,6 +761,44 @@
         async function loadAdminUsers(page = 1, search = '', filter = '') {
             const usersTable = document.getElementById('usersTableBody');
             usersTable.innerHTML = '<tr><td colspan="8" class="text-center py-3">Loading users...</td></tr>';
+
+            try {
+                const response = await fetch('/api/admin/dashboard-data', { credentials: 'same-origin' });
+                if (!response.ok) throw new Error('Failed to load users');
+
+                const data = await response.json();
+                const users = data.users || [];
+
+                if (users.length === 0) {
+                    usersTable.innerHTML = '<tr><td colspan="8" class="text-center py-3">No users found</td></tr>';
+                    return;
+                }
+
+                usersTable.innerHTML = users.map(user => `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td>${user.full_name}</td>
+                        <td>${user.email}</td>
+                        <td>${user.college || 'N/A'}</td>
+                        <td>
+                            <span class="badge ${user.is_verified ? 'bg-success' : 'bg-warning'}">
+                                ${user.is_verified ? 'Verified' : 'Unverified'}
+                            </span>
+                        </td>
+                        <td><span class="badge bg-info">${user.listings_count}</span></td>
+                        <td>${new Date(user.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="adminDeleteUser(${user.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading users:', error);
+                usersTable.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Failed to load users</td></tr>';
+            }
         }
 
         async function adminDeleteUser(userId) {
@@ -788,10 +826,53 @@
             }
         }
 
-        // Listings Management (stub)
+        // Listings Management
         async function loadAdminListings(page = 1, search = '', filter = '') {
             const listingsTable = document.getElementById('listingsTableBody');
             listingsTable.innerHTML = '<tr><td colspan="8" class="text-center py-3">Loading listings...</td></tr>';
+
+            try {
+                const response = await fetch('/api/admin/dashboard-data', { credentials: 'same-origin' });
+                if (!response.ok) throw new Error('Failed to load listings');
+
+                const data = await response.json();
+                const listings = data.listings || [];
+
+                if (listings.length === 0) {
+                    listingsTable.innerHTML = '<tr><td colspan="8" class="text-center py-3">No listings found</td></tr>';
+                    return;
+                }
+
+                listingsTable.innerHTML = listings.map(listing => `
+                    <tr>
+                        <td>${listing.id}</td>
+                        <td>${listing.title}</td>
+                        <td>
+                            <span class="badge bg-secondary">${listing.category}</span>
+                        </td>
+                        <td>₹${listing.price}</td>
+                        <td>${listing.seller_name}</td>
+                        <td>
+                            <span class="badge ${listing.is_fake_warning ? 'bg-danger' : 'bg-success'}">
+                                ${listing.is_fake_warning ? 'Flagged' : 'Normal'}
+                            </span>
+                        </td>
+                        <td>${new Date(listing.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-warning me-1" onclick="adminToggleFakeWarning(${listing.id})">
+                                <i class="fas fa-flag"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="adminDeleteListing(${listing.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading listings:', error);
+                listingsTable.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-3">Failed to load listings</td></tr>';
+            }
         }
 
         async function adminDeleteListing(listingId) {
