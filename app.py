@@ -773,7 +773,7 @@ def mark_sold(listing_id):
 
         if buyer_user_id:
             # New flow: Get buyer information from user ID
-            buyer = User.query.get(buyer_user_id)
+            buyer = db.session.get(User, buyer_user_id)
             if not buyer:
                 return jsonify({'success': False, 'message': 'Buyer not found'})
 
@@ -1172,7 +1172,7 @@ def load_user(user_id):
 def get_or_create_student_profile(user_id):
     profile = StudentProfile.query.filter_by(user_id=user_id).first()
     if not profile:
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if user:
             profile = StudentProfile(
                 user_id=user_id,
@@ -3440,7 +3440,7 @@ def admin_listing_details(listing_id):
         listing = db.session.get(Listing, listing_id)
         if not listing:
             abort(404)
-        seller = User.query.get(listing.seller_id)
+        seller = db.session.get(User, listing.seller_id)
         return jsonify({
             'id': listing.id,
             'title': listing.title,
@@ -4536,9 +4536,9 @@ def admin_approve_college_change(user_id):
             </body>
             </html>
             """), 404
-        
+
         # Update user's college
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return render_template_string("""
             <!DOCTYPE html>
@@ -4790,8 +4790,8 @@ def admin_reject_college_change(user_id):
             </body>
             </html>
             """), 404
-        
-        user = User.query.get(user_id)
+
+        user = db.session.get(User, user_id)
         if not user:
             return render_template_string("""
             <!DOCTYPE html>
@@ -5977,7 +5977,7 @@ def company_required(f):
 @app.route('/company/dashboard')
 @company_required
 def company_dashboard():
-    company = Company.query.get(session['company_id'])
+    company = db.session.get(Company, session['company_id'])
     internships = Internship.query.filter_by(posted_by_company_id=company.id).all()
     total_applications = db.session.query(Application).join(Internship).filter(Internship.posted_by_company_id == company.id).count()
     
@@ -5989,10 +5989,10 @@ def company_dashboard():
 def company_post_job():
     if request.method == 'GET':
         return render_template('company/post_job.html')
-    
-    company = Company.query.get(session['company_id'])
+
+    company = db.session.get(Company, session['company_id'])
     data = request.json
-    
+
     internship = Internship(
         title=data['title'],
         description=data['description'],
@@ -6013,7 +6013,7 @@ def company_post_job():
 @app.route('/company/jobs')
 @company_required
 def company_jobs():
-    company = Company.query.get(session['company_id'])
+    company = db.session.get(Company, session['company_id'])
     internships = Internship.query.filter_by(posted_by_company_id=company.id).order_by(Internship.created_at.desc()).all()
     return render_template('company/jobs.html', internships=internships)
 
@@ -6021,7 +6021,7 @@ def company_jobs():
 @app.route('/company/applications')
 @company_required
 def company_applications():
-    company = Company.query.get(session['company_id'])
+    company = db.session.get(Company, session['company_id'])
     applications = db.session.query(Application).join(Internship).filter(Internship.posted_by_company_id == company.id).order_by(Application.applied_at.desc()).all()
     return render_template('company/applications.html', applications=applications)
 
@@ -6029,8 +6029,8 @@ def company_applications():
 @app.route('/company/profile/edit', methods=['GET', 'POST'])
 @company_required
 def company_profile_edit():
-    company = Company.query.get(session['company_id'])
-    
+    company = db.session.get(Company, session['company_id'])
+
     if request.method == 'GET':
         return render_template('company/edit_profile.html', company=company)
     
@@ -6367,7 +6367,7 @@ def admin_update_application_status(application_id):
 @company_required
 def company_update_application_status(application_id):
     try:
-        company = Company.query.get(session['company_id'])
+        company = db.session.get(Company, session['company_id'])
         data = request.json
         new_status = data.get('status')
         notes = data.get('notes', '')
