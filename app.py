@@ -3197,6 +3197,17 @@ def admin_login():
 @app.route('/admin/dashboard')
 @login_required
 def admin_dashboard():
+    """Render the admin dashboard HTML page"""
+    if not current_user.is_admin:
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('index'))
+
+    return render_template('admin/dashboard.html')
+
+@app.route('/api/admin/dashboard-data')
+@login_required
+def admin_dashboard_data():
+    """API endpoint for admin dashboard data"""
     if not current_user.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
 
@@ -3204,14 +3215,14 @@ def admin_dashboard():
         users = User.query.all()
         listings = Listing.query.all()
         reports = Report.query.all()
-        
+
         return jsonify({
             'users': [{
                 'id': u.id,
                 'email': u.email,
                 'full_name': u.full_name,
                 'college': u.college,
-                
+
                 'is_verified': u.is_verified,
                 'created_at': u.created_at.isoformat(),
                 'listings_count': len(u.listings)
@@ -5391,6 +5402,53 @@ def admin_college_details(college_name):
         
     except Exception as e:
         print(f"Error in college details: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/stats')
+@login_required
+def admin_stats():
+    """API endpoint for admin chart statistics"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    try:
+        from datetime import datetime, timedelta
+
+        # User growth - last 30 days
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        user_growth = db.session.query(
+            db.func.date(User.created_at).label('date'),
+            db.func.count(User.id).label('count')
+        ).filter(User.created_at >= thirty_days_ago)\
+         .group_by(db.func.date(User.created_at))\
+         .order_by('date')\
+         .all()
+
+        # Listing growth - last 30 days
+        listing_growth = db.session.query(
+            db.func.date(Listing.created_at).label('date'),
+            db.func.count(Listing.id).label('count')
+        ).filter(Listing.created_at >= thirty_days_ago)\
+         .group_by(db.func.date(Listing.created_at))\
+         .order_by('date')\
+         .all()
+
+        # Category distribution
+        category_distribution = db.session.query(
+            Listing.category,
+            db.func.count(Listing.id).label('count')
+        ).group_by(Listing.category)\
+         .order_by(db.desc('count'))\
+         .all()
+
+        return jsonify({
+            'user_growth': [{'date': str(row.date), 'count': row.count} for row in user_growth],
+            'listing_growth': [{'date': str(row.date), 'count': row.count} for row in listing_growth],
+            'category_distribution': [{'category': row.category, 'count': row.count} for row in category_distribution]
+        })
+
+    except Exception as e:
+        print(f"Error in admin stats: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
